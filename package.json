@@ -12,7 +12,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.0.0",
+    "@clerk/nextjs": "7.6.2",
     "groq-sdk": "0.7.0",
     "jszip": "3.10.1",
     "mammoth": "1.6.0",
