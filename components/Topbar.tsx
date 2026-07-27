@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const breadcrumbs: Record<string, string> = {
-  '/': 'Knowledge Base',
+  '/': 'Dashboard',
   '/ask': 'Ask Anything',
   '/documents': 'Documents',
   '/agents': 'Agents',
@@ -32,7 +32,8 @@ export default function Topbar() {
       style={{
         height: 56,
         borderBottom: '1px solid var(--border)',
-        background: 'var(--bg)',
+        background: 'rgba(10, 12, 15, 0.85)',
+        backdropFilter: 'blur(20px)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 24px',
@@ -98,8 +99,8 @@ export default function Topbar() {
 
       {/* Status dot */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E' }} />
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Connected</span>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 6px var(--accent)' }} />
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Live</span>
       </div>
     </header>
   );

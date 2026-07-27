@@ -30,12 +30,19 @@ interface Query {
 function StatCard({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
     <div style={{
-      background: 'var(--bg)',
+      background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: 10,
+      borderRadius: 12,
       padding: '20px 24px',
       flex: 1,
+      backdropFilter: 'blur(12px)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+        background: 'linear-gradient(90deg, transparent, var(--accent-light), transparent)',
+      }} />
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
         <span style={{ fontSize: 28, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-1px' }}>{value}</span>
