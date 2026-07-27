@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --legacy-peer-deps",
+  "installCommand": "npm install --force",
   "functions": {
     "app/api/documents/upload/route.ts": {
       "maxDuration": 60
