@@ -4,24 +4,6 @@ import { useEffect, useState } from 'react';
 
 const INTEGRATIONS = [
   {
-    id: 'slack',
-    name: 'Slack',
-    description: 'Index channel messages and files into your knowledge base',
-    connectUrl: '/api/integrations/slack/connect',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M7.5 2.5a2 2 0 1 0 0 4h2V2.5H7.5z" fill="#E01E5A"/>
-        <path d="M10.5 2.5v4h2a2 2 0 1 0 0-4h-2z" fill="#36C5F0"/>
-        <path d="M17.5 7.5a2 2 0 1 0-4 0v2h4V7.5z" fill="#2EB67D"/>
-        <path d="M17.5 10.5h-4v2a2 2 0 1 0 4 0v-2z" fill="#ECB22E"/>
-        <path d="M2.5 12.5a2 2 0 1 0 0-4H.5v4h2z" fill="#2EB67D"/>
-        <path d="M2.5 12.5H.5v2a2 2 0 1 0 4 0v-2h-2z" fill="#E01E5A"/>
-        <path d="M9.5 17.5a2 2 0 1 0 4 0v-2h-4v2z" fill="#36C5F0"/>
-        <path d="M9.5 17.5v-2h-2a2 2 0 1 0 0 4v-2z" fill="#ECB22E"/>
-      </svg>
-    ),
-  },
-  {
     id: 'google_drive',
     name: 'Google Drive',
     description: 'Sync Google Docs and files to your knowledge base',

@@ -31,11 +31,6 @@ const navItems = [
     icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="2.5" cy="4" r="1.5"/><circle cx="12.5" cy="4" r="1.5"/><circle cx="7.5" cy="12" r="1.5"/><line x1="4" y1="4" x2="11" y2="4"/><path d="M2.5 5.5v2.5a2 2 0 0 0 2 2H7.5"/><path d="M12.5 5.5v2.5a2 2 0 0 1-2 2H7.5"/></svg>,
   },
   {
-    href: '/integrations',
-    label: 'Integrations',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="3" cy="3" r="2"/><circle cx="12" cy="3" r="2"/><circle cx="7.5" cy="12" r="2"/><line x1="5" y1="3" x2="10" y2="3"/><line x1="3.8" y1="4.8" x2="6.5" y2="10.2"/><line x1="11.2" y1="4.8" x2="8.5" y2="10.2"/></svg>,
-  },
-  {
     href: '/copilot',
     label: 'Copilot',
     icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5.5l-3.5 2V3a1 1 0 0 1 1-1z"/><line x1="5" y1="6.5" x2="5" y2="6.51" strokeWidth="2"/><line x1="7.5" y1="6.5" x2="7.5" y2="6.51" strokeWidth="2"/><line x1="10" y1="6.5" x2="10" y2="6.51" strokeWidth="2"/></svg>,
@@ -45,7 +40,6 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
-  const { organization } = useOrganization();
 
   return (
     <aside style={{
@@ -147,7 +141,7 @@ export default function Sidebar() {
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {organization?.name || user?.firstName || 'My Workspace'}
+            {user?.firstName || user?.emailAddresses?.[0]?.emailAddress || 'My Workspace'}
           </div>
           <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 1 }}>Consulting Edition</div>
         </div>
