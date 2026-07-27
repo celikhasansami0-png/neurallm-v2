@@ -9,7 +9,7 @@ import CopilotPanel from '@/components/CopilotPanel';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'NeuraLLM v2 — AI OS for Consulting Firms',
+  title: 'NeuraLLM – AI OS for Consulting Firms',
   description: 'The AI operating system built for consulting firms. RAG, agents, workflows, and integrations in one platform.',
 };
 
