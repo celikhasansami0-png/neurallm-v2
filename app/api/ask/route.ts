@@ -13,12 +13,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 });
     }
 
-    // Generate embedding for the question
     const questionEmbedding = await getEmbedding(question);
     const embeddingStr = `[${questionEmbedding.join(',')}]`;
 
-    // Find top 5 most similar chunks using pgvector cosine similarity
-    let chunks: any[] = [];
+    let chunks: Array<{ content: string; page_number: number; document_id: string; document_name: string; similarity: number }> = [];
+
     try {
       const result = await query(
         `SELECT c.id, c.content, c.page_number, c.document_id, d.name as document_name,
@@ -31,40 +30,39 @@ export async function POST(request: NextRequest) {
         [embeddingStr]
       );
       chunks = result.rows;
-    } catch (vecErr) {
-      // Fallback: get recent chunks if pgvector not available
-      console.warn('pgvector query failed, using fallback:', vecErr);
+    } catch {
+      // Fallback: text search
       const fallback = await query(
         `SELECT c.id, c.content, c.page_number, c.document_id, d.name as document_name, 0.5 as similarity
          FROM chunks c JOIN documents d ON c.document_id = d.id
          WHERE d.status = 'indexed' AND c.content ILIKE $1
          LIMIT 5`,
         [`%${question.slice(0, 50)}%`]
-      );
+      ).catch(() => ({ rows: [] }));
       chunks = fallback.rows;
     }
 
     const responseTime = (Date.now() - start) / 1000;
-
     let answer: string;
-    let sources: any[] = [];
+    let sources: Array<{ documentId: string; documentName: string; pageNumber: number; similarity: number }> = [];
 
     if (chunks.length === 0) {
-      answer = 'I could not find relevant information in the knowledge base to answer your question. Please upload relevant documents first.';
+      answer = 'No relevant information found in the knowledge base. Please upload relevant documents first.';
     } else {
       const context = chunks.map((c, i) =>
         `[Source ${i + 1}: ${c.document_name}, page ${c.page_number}]\n${c.content}`
       ).join('\n\n---\n\n');
 
-      const systemPrompt = `You are NeuraLLM, an AI assistant for a consulting firm's knowledge management platform.
-Answer questions based ONLY on the provided document excerpts. Be precise, professional, and cite your sources.
+      answer = await chatCompletion([
+        {
+          role: 'system',
+          content: `You are NeuraLLM, an AI assistant for a consulting firm's knowledge management platform.
+Answer questions based ONLY on the provided document excerpts. Be precise and professional.
 If the context doesn't contain enough information, say so clearly.
 
 Document Context:
-${context}`;
-
-      answer = await chatCompletion([
-        { role: 'system', content: systemPrompt },
+${context}`,
+        },
         { role: 'user', content: question },
       ]);
 
@@ -76,15 +74,11 @@ ${context}`;
       }));
     }
 
-    // Save query to history
-    try {
-      await query(
-        'INSERT INTO queries (question, answer, sources) VALUES ($1, $2, $3)',
-        [question, answer, JSON.stringify(sources)]
-      );
-    } catch (saveErr) {
-      console.error('Failed to save query:', saveErr);
-    }
+    // Save query
+    await query(
+      'INSERT INTO queries (question, answer, sources) VALUES ($1, $2, $3)',
+      [question, answer, JSON.stringify(sources)]
+    ).catch(err => console.error('Failed to save query:', err));
 
     return NextResponse.json({ answer, sources, responseTime });
   } catch (err) {

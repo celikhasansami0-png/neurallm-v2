@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       [limit]
     );
     return NextResponse.json(result.rows);
-  } catch (err) {
+  } catch {
     return NextResponse.json([]);
   }
 }

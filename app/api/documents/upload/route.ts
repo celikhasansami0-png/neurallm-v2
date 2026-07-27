@@ -6,43 +6,47 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-async function parseDocument(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
-  const ext = filename.toLowerCase().split('.').pop();
-  
+async function extractTextFromBuffer(buffer: Buffer, ext: string): Promise<string> {
   if (ext === 'pdf') {
     try {
-      const pdfParse = (await import('pdf-parse')).default;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse');
       const data = await pdfParse(buffer);
-      return data.text;
+      return data.text || '';
     } catch (e) {
       console.error('PDF parse error:', e);
-      return buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
+      return '';
     }
   }
-  
+
   if (ext === 'docx') {
     try {
-      const mammoth = await import('mammoth');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mammoth = require('mammoth');
       const result = await mammoth.extractRawText({ buffer });
-      return result.value;
+      return result.value || '';
     } catch (e) {
       console.error('DOCX parse error:', e);
       return '';
     }
   }
-  
+
   if (ext === 'pptx') {
-    // Basic PPTX text extraction via XML parsing
     try {
-      const JSZip = (await import('jszip') as any).default || (await import('jszip'));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const JSZip = require('jszip');
       const zip = await JSZip.loadAsync(buffer);
       let text = '';
-      const slideFiles = Object.keys(zip.files).filter(f => f.match(/ppt\/slides\/slide\d+\.xml/));
-      for (const slideFile of slideFiles.sort()) {
-        const content = await zip.files[slideFile].async('string');
-        const textMatches = content.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || [];
-        text += textMatches.map((m: string) => m.replace(/<[^>]+>/g, '')).join(' ') + '\n';
+      const files = Object.keys(zip.files);
+      const slideFiles = files
+        .filter((f: string) => /ppt\/slides\/slide\d+\.xml/.test(f))
+        .sort();
+      for (const slideFile of slideFiles) {
+        const content: string = await zip.files[slideFile].async('string');
+        const matches = content.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || [];
+        text += matches.map((m: string) => m.replace(/<[^>]+>/g, '')).join(' ') + '\n';
       }
       return text;
     } catch (e) {
@@ -50,7 +54,7 @@ async function parseDocument(buffer: Buffer, filename: string, mimeType: string)
       return '';
     }
   }
-  
+
   return buffer.toString('utf-8');
 }
 
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
@@ -66,13 +70,14 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ['pdf', 'docx', 'pptx'];
     const ext = file.name.toLowerCase().split('.').pop() || '';
     if (!allowedTypes.includes(ext)) {
-      return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+      return NextResponse.json({ error: 'Unsupported file type. Use PDF, DOCX, or PPTX.' }, { status: 400 });
     }
 
-    // Save file
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Save file to /uploads
     const uploadsDir = path.join(process.cwd(), 'uploads');
     await mkdir(uploadsDir, { recursive: true });
-    const buffer = Buffer.from(await file.arrayBuffer());
     const safeFilename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     await writeFile(path.join(uploadsDir, safeFilename), buffer);
 
@@ -83,17 +88,16 @@ export async function POST(request: NextRequest) {
     );
     const documentId = docResult.rows[0].id;
 
-    // Parse and index in background
-    (async () => {
+    // Parse + embed in background (fire-and-forget)
+    void (async () => {
       try {
-        const text = await parseDocument(buffer, file.name, file.type);
+        const text = await extractTextFromBuffer(buffer, ext);
         if (!text?.trim()) {
           await query('UPDATE documents SET status = $1 WHERE id = $2', ['failed', documentId]);
           return;
         }
 
         const chunks = chunkText(text);
-        
         for (const chunk of chunks) {
           const embedding = await getEmbedding(chunk.content);
           const embeddingStr = `[${embedding.join(',')}]`;
@@ -102,7 +106,6 @@ export async function POST(request: NextRequest) {
             [documentId, chunk.content, embeddingStr, chunk.pageNumber, chunk.chunkIndex]
           );
         }
-
         await query('UPDATE documents SET status = $1 WHERE id = $2', ['indexed', documentId]);
       } catch (err) {
         console.error('Indexing error:', err);
