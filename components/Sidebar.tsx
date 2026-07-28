@@ -7,33 +7,85 @@ import { UserButton, useUser } from '@clerk/nextjs';
 const navItems = [
   {
     href: '/',
-    label: 'Dashboard',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="5.5" height="5.5" rx="1.5"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1.5"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1.5"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.5"/></svg>,
+    label: 'Overview',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="9" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="1" y="9" width="6" height="6" rx="1.5"/>
+        <rect x="9" y="9" width="6" height="6" rx="1.5"/>
+      </svg>
+    ),
   },
   {
     href: '/ask',
     label: 'Ask AI',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="6"/><path d="M5.5 5.8a2 2 0 0 1 3.9.7c0 1.3-2 2-2 2"/><circle cx="7.5" cy="10.5" r=".5" fill="currentColor" stroke="none"/></svg>,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 10.5a1 1 0 0 1-1 1H4.5L2 14V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7.5z"/>
+        <path d="M5.5 7h5M5.5 9.5h3"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/agents',
+    label: 'AI Agents',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="5" r="3"/>
+        <path d="M1.5 15c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/>
+        <circle cx="5.5" cy="5" r=".4" fill="currentColor" stroke="none"/>
+        <circle cx="10.5" cy="5" r=".4" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
   },
   {
     href: '/documents',
     label: 'Documents',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 1.5H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V6L8.5 1.5z"/><path d="M8.5 1.5V6H13"/><line x1="4.5" y1="8.5" x2="10.5" y2="8.5"/><line x1="4.5" y1="11" x2="8" y2="11"/></svg>,
-  },
-  {
-    href: '/agents',
-    label: 'Agents',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="5" r="3"/><path d="M1 14c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="5.5" cy="5" r=".4" fill="currentColor" stroke="none"/><circle cx="9.5" cy="5" r=".4" fill="currentColor" stroke="none"/></svg>,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 1.5H3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V6L9 1.5z"/>
+        <path d="M9 1.5V6H13.5"/>
+        <line x1="5" y1="9" x2="11" y2="9"/>
+        <line x1="5" y1="11.5" x2="8.5" y2="11.5"/>
+      </svg>
+    ),
   },
   {
     href: '/workflows',
     label: 'Workflows',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="2.5" cy="4" r="1.5"/><circle cx="12.5" cy="4" r="1.5"/><circle cx="7.5" cy="12" r="1.5"/><line x1="4" y1="4" x2="11" y2="4"/><path d="M2.5 5.5v2.5a2 2 0 0 0 2 2H7.5"/><path d="M12.5 5.5v2.5a2 2 0 0 1-2 2H7.5"/></svg>,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="3" cy="4.5" r="1.5"/>
+        <circle cx="13" cy="4.5" r="1.5"/>
+        <circle cx="8" cy="12.5" r="1.5"/>
+        <line x1="4.5" y1="4.5" x2="11.5" y2="4.5"/>
+        <path d="M3 6v3a2 2 0 0 0 2 2H8"/>
+        <path d="M13 6v3a2 2 0 0 1-2 2H8"/>
+      </svg>
+    ),
   },
   {
     href: '/copilot',
     label: 'Copilot',
-    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5.5l-3.5 2V3a1 1 0 0 1 1-1z"/><line x1="5" y1="6.5" x2="5" y2="6.51" strokeWidth="2"/><line x1="7.5" y1="6.5" x2="7.5" y2="6.51" strokeWidth="2"/><line x1="10" y1="6.5" x2="10" y2="6.51" strokeWidth="2"/></svg>,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5l3.5-.5L8 2z"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/integrations',
+    label: 'Integrations',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="3.5" cy="8" r="2"/>
+        <circle cx="12.5" cy="3.5" r="2"/>
+        <circle cx="12.5" cy="12.5" r="2"/>
+        <line x1="5.5" y1="8" x2="10.5" y2="4.5"/>
+        <line x1="5.5" y1="8" x2="10.5" y2="11.5"/>
+      </svg>
+    ),
   },
 ];
 
@@ -43,12 +95,11 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 220,
-      minWidth: 220,
+      width: 230,
+      minWidth: 230,
       height: '100vh',
-      borderRight: '1px solid var(--border)',
-      background: 'rgba(10, 12, 15, 0.95)',
-      backdropFilter: 'blur(20px)',
+      background: '#0D1017',
+      borderRight: '1px solid rgba(255,255,255,0.06)',
       display: 'flex',
       flexDirection: 'column',
       position: 'fixed',
@@ -58,42 +109,42 @@ export default function Sidebar() {
     }}>
       {/* Logo */}
       <div style={{
-        padding: '20px 18px 16px',
-        borderBottom: '1px solid var(--border)',
+        padding: '22px 20px 18px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
       }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: 'linear-gradient(135deg, var(--accent) 0%, var(--blue) 100%)',
+          width: 32, height: 32, borderRadius: 9,
+          background: 'linear-gradient(135deg, #00D4A8 0%, #4D9EFF 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 12px var(--accent-glow)',
+          boxShadow: '0 0 16px rgba(0,212,168,0.3)',
           flexShrink: 0,
         }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="7" cy="4" r="2.5"/>
-            <path d="M1 13c0-3 2.5-5 6-5s6 2 6 5"/>
-            <path d="M5 4h4M7 2v4"/>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="8" cy="5" r="2.5"/>
+            <path d="M2 14c0-3.5 2.5-6 6-6s6 2.5 6 6"/>
+            <path d="M6 5h4M8 3v4"/>
           </svg>
         </div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>NeuraLLM</div>
-          <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--accent)', letterSpacing: '1px', marginTop: -1 }}>AI OS</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#F0F4FF', letterSpacing: '-0.3px' }}>NeuraLLM</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#00D4A8', letterSpacing: '1.2px', marginTop: -1 }}>AI OS</div>
         </div>
         <span style={{
           marginLeft: 'auto',
-          fontSize: 9, fontWeight: 700,
-          color: 'var(--accent)',
-          background: 'var(--accent-light)',
+          fontSize: 10, fontWeight: 700,
+          color: '#00D4A8',
+          background: 'rgba(0,212,168,0.1)',
           border: '1px solid rgba(0,212,168,0.2)',
-          padding: '2px 6px', borderRadius: 4,
-          letterSpacing: '0.5px',
+          padding: '3px 7px', borderRadius: 5,
+          letterSpacing: '0.3px',
         }}>v2</span>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <nav style={{ flex: 1, padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {navItems.map((item) => {
           const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
           return (
@@ -101,25 +152,16 @@ export default function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '8px 10px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: active ? 500 : 400,
-              color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-              background: active ? 'var(--surface2)' : 'transparent',
-              border: active ? '1px solid var(--border-bright)' : '1px solid transparent',
+              padding: '9px 12px',
+              borderRadius: 9,
+              fontSize: 13.5,
+              fontWeight: active ? 600 : 400,
+              color: active ? '#F0F4FF' : '#6B7585',
+              background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+              border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
               transition: 'all 0.15s',
-              position: 'relative',
             }}>
-              {active && (
-                <div style={{
-                  position: 'absolute', left: 0, top: '20%', bottom: '20%',
-                  width: 2, borderRadius: 2,
-                  background: 'var(--accent)',
-                  boxShadow: '0 0 6px var(--accent)',
-                }} />
-              )}
-              <span style={{ color: active ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', flexShrink: 0 }}>
+              <span style={{ color: active ? '#00D4A8' : '#6B7585', display: 'flex', flexShrink: 0 }}>
                 {item.icon}
               </span>
               {item.label}
@@ -128,22 +170,46 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Knowledge Base mini stats */}
+      <div style={{
+        margin: '0 10px 10px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        padding: '12px 14px',
+      }}>
+        <div style={{ fontSize: 10, color: '#4A5468', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 8, textTransform: 'uppercase' }}>Knowledge Base</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {[
+            { label: 'Documents', color: '#00D4A8', pct: 65 },
+            { label: 'Queries', color: '#4D9EFF', pct: 45 },
+            { label: 'Agents', color: '#A78BFA', pct: 80 },
+          ].map(({ label, color, pct }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pct}%` }} />
+              </div>
+              <span style={{ fontSize: 10, color: '#4A5468', minWidth: 52 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* User footer */}
       <div style={{
         padding: '12px 14px',
-        borderTop: '1px solid var(--border)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 10,
-        background: 'var(--glass)',
       }}>
         <UserButton appearance={{
           variables: { colorPrimary: '#00D4A8' },
-          elements: { avatarBox: { width: 28, height: 28 } }
+          elements: { avatarBox: { width: 30, height: 30 } }
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: '#F0F4FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.firstName || user?.emailAddresses?.[0]?.emailAddress || 'My Workspace'}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 1 }}>Consulting Edition</div>
+          <div style={{ fontSize: 10, color: '#00D4A8', marginTop: 1, fontWeight: 500 }}>Consulting Edition</div>
         </div>
       </div>
     </aside>

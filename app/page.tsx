@@ -10,193 +10,325 @@ interface Stats {
   activeUsers: number;
 }
 
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  status: string;
-  created_at: string;
-}
-
 interface Query {
   id: string;
   question: string;
   answer: string;
-  sources: string;
   created_at: string;
 }
 
-function StatCard({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
+// Fake sparkline data for the activity chart
+const SPARK_DATA = [18, 32, 27, 45, 38, 52, 41, 60, 55, 70, 63, 82, 74, 90];
+
+function LineChart({ data }: { data: number[] }) {
+  const w = 340, h = 100;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 16) - 8;
+    return `${x},${y}`;
+  });
+  const pathD = `M ${pts.join(' L ')}`;
+  const areaD = `M 0,${h} L ${pts.join(' L ')} L ${w},${h} Z`;
+
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      padding: '20px 24px',
-      flex: 1,
-      backdropFilter: 'blur(12px)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-        background: 'linear-gradient(90deg, transparent, var(--accent-light), transparent)',
-      }} />
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span style={{ fontSize: 28, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-1px' }}>{value}</span>
-        {unit && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{unit}</span>}
-      </div>
+    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#00D4A8" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="#00D4A8" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill="url(#chartGrad)" />
+      <path d={pathD} fill="none" stroke="#00D4A8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Last point dot */}
+      {(() => {
+        const last = pts[pts.length - 1].split(',');
+        return <circle cx={last[0]} cy={last[1]} r="4" fill="#00D4A8" />;
+      })()}
+    </svg>
+  );
+}
+
+function CircularScore({ score, label }: { score: number; label: string }) {
+  const r = 52;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+        <circle
+          cx="70" cy="70" r={r}
+          fill="none"
+          stroke="#00D4A8"
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          transform="rotate(-90 70 70)"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,168,0.6))' }}
+        />
+        <text x="70" y="65" textAnchor="middle" fill="#F0F4FF" fontSize="28" fontWeight="700" fontFamily="Inter,sans-serif">{score}</text>
+        <text x="70" y="82" textAnchor="middle" fill="#4A5468" fontSize="11" fontFamily="Inter,sans-serif">/ 100</text>
+      </svg>
+      <p style={{ fontSize: 13, color: '#8A94A8', textAlign: 'center', lineHeight: 1.5, maxWidth: 200 }}>{label}</p>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const color = status === 'indexed' ? '#22C55E' : status === 'processing' ? '#F59E0B' : '#EF4444';
-  const bg = status === 'indexed' ? '#F0FDF4' : status === 'processing' ? '#FFFBEB' : '#FEF2F2';
-  return (
-    <span style={{ fontSize: 11, fontWeight: 500, color, background: bg, padding: '2px 8px', borderRadius: 4 }}>
-      {status}
-    </span>
-  );
+function timeAgo(dateStr: string) {
+  const d = new Date(dateStr);
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function FileIcon({ type }: { type: string }) {
-  const ext = type?.toLowerCase();
-  const color = ext === 'pdf' ? '#EF4444' : ext === 'docx' ? '#3B82F6' : '#F59E0B';
-  return (
-    <div style={{
-      width: 28, height: 28, borderRadius: 5,
-      background: color + '15',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 9, fontWeight: 700, color, flexShrink: 0,
-    }}>
-      {ext?.toUpperCase().slice(0, 3)}
-    </div>
-  );
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-}
+const AGENT_ICONS = ['📊', '🔍', '📝', '🤝', '👤', '📈', '🗓️', '⚡'];
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ totalDocuments: 0, queriesThisWeek: 0, avgResponseTime: 0, activeUsers: 1 });
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [recentQuery, setRecentQuery] = useState<Query | null>(null);
+  const [queries, setQueries] = useState<Query[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/analytics').then(r => r.json()),
-      fetch('/api/documents').then(r => r.json()),
-      fetch('/api/queries?limit=1').then(r => r.json()).catch(() => []),
-    ]).then(([statsData, docsData, queriesData]) => {
-      setStats(statsData);
-      setDocuments(Array.isArray(docsData) ? docsData.slice(0, 5) : []);
-      if (Array.isArray(queriesData) && queriesData.length > 0) setRecentQuery(queriesData[0]);
+      fetch('/api/analytics').then(r => r.json()).catch(() => ({})),
+      fetch('/api/queries?limit=5').then(r => r.json()).catch(() => []),
+    ]).then(([statsData, queriesData]) => {
+      setStats({ totalDocuments: 0, queriesThisWeek: 0, avgResponseTime: 0, activeUsers: 1, ...statsData });
+      setQueries(Array.isArray(queriesData) ? queriesData : []);
     }).finally(() => setLoading(false));
   }, []);
 
+  const healthScore = Math.min(100, Math.round(
+    (stats.totalDocuments > 0 ? 40 : 10) +
+    (stats.queriesThisWeek > 0 ? 30 : 0) +
+    (stats.avgResponseTime < 3 ? 30 : stats.avgResponseTime < 6 ? 20 : 10)
+  ));
+
+  const weekChange = stats.queriesThisWeek > 0
+    ? `+${stats.queriesThisWeek} this week`
+    : 'No queries yet';
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Knowledge Base</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>Overview of your consulting knowledge platform</p>
+    <div style={{ maxWidth: 1140, paddingBottom: 40 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{
+          fontSize: 28, fontWeight: 700, color: '#F0F4FF',
+          letterSpacing: '-0.6px', lineHeight: 1.2,
+        }}>Dashboard</h1>
+        <p style={{ fontSize: 13, color: '#8A94A8', marginTop: 5 }}>
+          Here's what's happening with your knowledge base today
+        </p>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Total Documents" value={loading ? '—' : stats.totalDocuments} />
-        <StatCard label="Queries This Week" value={loading ? '—' : stats.queriesThisWeek} />
-        <StatCard label="Avg Response Time" value={loading ? '—' : stats.avgResponseTime.toFixed ? stats.avgResponseTime.toFixed(1) : stats.avgResponseTime} unit="s" />
-        <StatCard label="Active Users" value={loading ? '—' : stats.activeUsers} />
-      </div>
+      {/* Top row — 2 big cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, marginBottom: 16 }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 500, fontSize: 13 }}>Recent Conversation</span>
-            <Link href="/ask" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>View all</Link>
+        {/* Total Knowledge card */}
+        <div style={{
+          background: '#141820',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          padding: '28px 28px 24px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse 60% 40% at 10% 10%, rgba(0,212,168,0.07) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ fontSize: 12, color: '#8A94A8', fontWeight: 500, letterSpacing: '0.3px', marginBottom: 14 }}>
+            Total Documents Indexed
           </div>
-          <div style={{ padding: '20px' }}>
-            {recentQuery ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text-primary)' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>USER</div>
-                  {recentQuery.question}
-                </div>
-                <div style={{ background: 'var(--accent-light)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  <div style={{ fontSize: 11, color: 'var(--accent)', marginBottom: 4, fontWeight: 500 }}>NEURALLM</div>
-                  {recentQuery.answer?.slice(0, 220)}{recentQuery.answer?.length > 220 ? '...' : ''}
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No conversations yet</div>
-                <Link href="/ask" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>Ask your first question</Link>
-              </div>
-            )}
+          <div style={{ fontSize: 42, fontWeight: 700, color: '#F0F4FF', letterSpacing: '-1.5px', lineHeight: 1, marginBottom: 14 }}>
+            {loading ? '—' : stats.totalDocuments.toLocaleString()}
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#00D4A8', background: 'rgba(0,212,168,0.12)', border: '1px solid rgba(0,212,168,0.2)', padding: '4px 10px', borderRadius: 6, marginBottom: 20 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 8V2M2 5l3-3 3 3" stroke="#00D4A8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            {weekChange}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link href="/documents" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, fontSize: 12, fontWeight: 500, color: '#F0F4FF',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+              Upload Docs
+            </Link>
+            <Link href="/ask" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              background: '#00D4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#000',
+            }}>
+              Ask AI
+            </Link>
           </div>
         </div>
 
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 500, fontSize: 13 }}>Recent Documents</span>
-            <Link href="/documents" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>Manage</Link>
-          </div>
-          <div>
-            {documents.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No documents uploaded yet</div>
-                <Link href="/documents" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>Upload documents</Link>
+        {/* Query Activity chart card */}
+        <div style={{
+          background: '#141820',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          padding: '24px 24px 20px',
+          overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div>
+              <div style={{ fontSize: 12, color: '#8A94A8', fontWeight: 500, marginBottom: 4 }}>Query Activity</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#F0F4FF', letterSpacing: '-0.5px' }}>
+                {loading ? '—' : stats.queriesThisWeek} <span style={{ fontSize: 13, color: '#8A94A8', fontWeight: 400 }}>this week</span>
               </div>
-            ) : (
-              documents.map((doc, i) => (
-                <div key={doc.id} style={{
-                  padding: '12px 20px',
-                  borderBottom: i < documents.length - 1 ? '1px solid var(--border)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}>
-                  <FileIcon type={doc.type} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{formatBytes(doc.size)}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['7D', '30D'].map((t, i) => (
+                <span key={t} style={{
+                  fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                  background: i === 0 ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: i === 0 ? '#F0F4FF' : '#4A5468',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer',
+                }}>{t}</span>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginTop: 16, marginLeft: -4, marginRight: -4 }}>
+            <LineChart data={SPARK_DATA} />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom row — circular score + recent queries */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16 }}>
+
+        {/* AI Knowledge Health */}
+        <div style={{
+          background: '#141820',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          padding: '28px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 0,
+        }}>
+          <div style={{ width: '100%', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#00D4A8" strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="5" r="3"/><path d="M1 13c0-3 2.5-5 6-5s6 2 6 5"/><path d="M5 5h4M7 3v4"/></svg>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF' }}>AI Knowledge Health</span>
+            </div>
+          </div>
+
+          <CircularScore
+            score={loading ? 0 : healthScore}
+            label={
+              healthScore >= 80
+                ? 'Excellent knowledge base coverage. Agents ready.'
+                : healthScore >= 50
+                ? 'Good coverage. Upload more docs to improve.'
+                : 'Upload documents to activate AI capabilities.'
+            }
+          />
+
+          <div style={{ width: '100%', marginTop: 16, display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 10, color: '#4A5468', marginBottom: 3, fontWeight: 500 }}>AVG RESPONSE</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#F0F4FF' }}>{loading ? '—' : `${(stats.avgResponseTime || 0).toFixed(1)}s`}</div>
+            </div>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 10, color: '#4A5468', marginBottom: 3, fontWeight: 500 }}>ACTIVE USERS</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#F0F4FF' }}>{loading ? '—' : stats.activeUsers}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Queries */}
+        <div style={{
+          background: '#141820',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '20px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF' }}>Recent Queries</span>
+            <Link href="/ask" style={{ fontSize: 12, color: '#00D4A8', fontWeight: 500 }}>Ask AI →</Link>
+          </div>
+
+          <div>
+            {loading ? (
+              [1,2,3,4].map(i => (
+                <div key={i} style={{ padding: '14px 24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.04)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ width: '60%', height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4, marginBottom: 6 }} />
+                    <div style={{ width: '30%', height: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
                   </div>
-                  <StatusBadge status={doc.status} />
                 </div>
               ))
+            ) : queries.length === 0 ? (
+              <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: '#4A5468', marginBottom: 12 }}>No queries yet</div>
+                <Link href="/ask" style={{ fontSize: 13, color: '#00D4A8', fontWeight: 500 }}>Ask your first question →</Link>
+              </div>
+            ) : (
+              queries.map((q, i) => {
+                const icon = AGENT_ICONS[i % AGENT_ICONS.length];
+                return (
+                  <div key={q.id} style={{
+                    padding: '14px 24px',
+                    borderTop: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    transition: 'background 0.15s',
+                    cursor: 'default',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 9,
+                      background: 'rgba(0,212,168,0.1)',
+                      border: '1px solid rgba(0,212,168,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 15, flexShrink: 0,
+                    }}>{icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#F0F4FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {q.question}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#4A5468', marginTop: 2 }}>
+                        {timeAgo(q.created_at)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#00D4A8', fontWeight: 600, flexShrink: 0 }}>
+                      AI
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
-      </div>
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-        <Link href="/documents" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px',
-          background: 'var(--accent)', color: '#fff', borderRadius: 7, fontSize: 13, fontWeight: 500,
-        }}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/></svg>
-          Upload Document
-        </Link>
-        <Link href="/ask" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px',
-          background: 'var(--bg)', color: 'var(--text-primary)', borderRadius: 7, fontSize: 13, fontWeight: 500, border: '1px solid var(--border)',
-        }}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="5.5" cy="5.5" r="4"/><line x1="9" y1="9" x2="12" y2="12"/></svg>
-          Ask a Question
-        </Link>
-        <Link href="/agents" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px',
-          background: 'var(--bg)', color: 'var(--text-primary)', borderRadius: 7, fontSize: 13, fontWeight: 500, border: '1px solid var(--border)',
-        }}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="6.5" cy="4.5" r="3"/><path d="M1 12c0-3 2.5-5.5 5.5-5.5S12 9 12 12"/></svg>
-          Run Agent
-        </Link>
+          {/* Quick agents */}
+          <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['Summarizer', 'Gap Analysis', 'Trend Report', 'Weekly Digest'].map(agent => (
+              <Link key={agent} href={`/agents`} style={{
+                fontSize: 11, fontWeight: 500, color: '#8A94A8',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                padding: '5px 10px', borderRadius: 6,
+              }}>{agent}</Link>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
