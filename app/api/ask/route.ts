@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getEmbedding } from '@/lib/embeddings';
-import { chatCompletion } from '@/lib/groq';
+import { chatCompletion } from '@/lib/nvidia';
 
 export const dynamic = 'force-dynamic';
 
