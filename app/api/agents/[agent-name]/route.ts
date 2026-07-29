@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 import { chatCompletion } from '@/lib/nvidia';
 import { getEmbedding } from '@/lib/embeddings';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -57,8 +58,15 @@ export async function POST(
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { ok } = rateLimit(userId, 20); // 20 agent runs/min
+  if (!ok) return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+
   try {
     const agentName = params['agent-name'];
+    const VALID_AGENTS = ['summarizer','comparator','meeting-notes','client-brief','expert-finder','gap-analysis','trend-report','weekly-digest'];
+    if (!VALID_AGENTS.includes(agentName)) {
+      return NextResponse.json({ error: `Unknown agent: ${agentName}` }, { status: 404 });
+    }
     const { input } = await request.json();
 
     const promptBuilder = AGENT_PROMPTS[agentName];

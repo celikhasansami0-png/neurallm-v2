@@ -3,12 +3,16 @@ import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 import { getEmbedding } from '@/lib/embeddings';
 import { chatCompletion } from '@/lib/nvidia';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { ok } = rateLimit(userId, 30); // 30 queries/min
+  if (!ok) return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
 
   const start = Date.now();
   try {
