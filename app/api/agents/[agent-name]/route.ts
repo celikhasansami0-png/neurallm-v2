@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 import { chatCompletion } from '@/lib/nvidia';
 import { getEmbedding } from '@/lib/embeddings';
@@ -53,6 +54,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { 'agent-name': string } }
 ) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const agentName = params['agent-name'];
     const { input } = await request.json();

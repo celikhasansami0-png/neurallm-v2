@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 import { getEmbedding } from '@/lib/embeddings';
 import { chatCompletion } from '@/lib/nvidia';
@@ -6,6 +7,9 @@ import { chatCompletion } from '@/lib/nvidia';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const start = Date.now();
   try {
     const { question } = await request.json();

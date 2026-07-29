@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const result = await query('SELECT * FROM workflows ORDER BY created_at DESC');
     return NextResponse.json(result.rows);
-  } catch (err) {
+  } catch {
     return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { name, trigger, action } = await request.json();
     const result = await query(
