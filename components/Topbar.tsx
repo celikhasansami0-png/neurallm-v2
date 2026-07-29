@@ -32,8 +32,9 @@ export default function Topbar() {
       style={{
         height: 56,
         borderBottom: '1px solid var(--border)',
-        background: 'rgba(10, 12, 15, 0.85)',
+        background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 24px',
