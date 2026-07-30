@@ -9,8 +9,8 @@ import CopilotPanel from '@/components/CopilotPanel';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'NeuraLLM – AI OS for Consulting Firms',
-  description: 'The AI operating system built for consulting firms. RAG, agents, workflows, and integrations in one platform.',
+  title: 'NeuraLLM',
+  description: 'The AI operating system built for consulting firms.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <html lang="en" className={inter.variable}>
         <body style={{ background: 'var(--bg)', display: 'flex', minHeight: '100vh' }}>
           <Sidebar />
-          <div style={{ marginLeft: 230, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ marginLeft: 220, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <Topbar />
-            <main style={{ flex: 1, padding: '32px 32px', background: 'var(--bg)' }}>
+            <main style={{ flex: 1, padding: '32px 40px', background: 'var(--bg)' }}>
               {children}
             </main>
           </div>

@@ -1,214 +1,207 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 
-interface Stats {
-  totalDocuments: number;
-  queriesThisWeek: number;
-  avgResponseTime: number;
-  activeUsers: number;
-}
+const QUICK_ACTIONS = [
+  { label: 'Ask AI', href: '/ask', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', desc: 'Chat with assistant' },
+  { label: 'Agents', href: '/agents', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', desc: 'Run AI agents' },
+  { label: 'Workflows', href: '/workflows', icon: 'M22 12h-4l-3 9L9 3l-3 9H2', desc: 'Automate tasks' },
+  { label: 'Knowledge Base', href: '/documents', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', desc: 'Your documents' },
+  { label: 'Integrations', href: '/integrations', icon: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', desc: 'Connect tools' },
+];
 
-interface Query {
-  id: string;
-  question: string;
-  answer: string;
-  created_at: string;
-}
+const RECENT_THREADS = [
+  {
+    id: 1, tag: 'Research', tagColor: '#6D28D9', tagBg: '#F5F3FF',
+    title: 'Q3 Market Analysis — SaaS Sector',
+    preview: 'Analyst identified 3 high-growth segments. Revenue projections updated based on latest funding data.',
+    time: '2h ago', agent: 'Analyst',
+  },
+  {
+    id: 2, tag: 'Report', tagColor: '#0369A1', tagBg: '#EFF6FF',
+    title: 'Competitor Landscape — FinTech 2025',
+    preview: 'Researcher compiled 18 competitor profiles with positioning maps and pricing breakdowns.',
+    time: '5h ago', agent: 'Researcher',
+  },
+  {
+    id: 3, tag: 'Workflow', tagColor: '#065F46', tagBg: '#ECFDF5',
+    title: 'Weekly Digest — Client Updates',
+    preview: 'Coordinator summarized 42 client touchpoints. 3 flagged for follow-up.',
+    time: 'Yesterday', agent: 'Coordinator',
+  },
+  {
+    id: 4, tag: 'Strategy', tagColor: '#92400E', tagBg: '#FEF3C7',
+    title: 'GTM Strategy — Enterprise Tier',
+    preview: 'Strategist outlined 5-phase go-to-market roadmap with KPI benchmarks.',
+    time: '2 days ago', agent: 'Strategist',
+  },
+];
 
-const SPARK_DATA = [18, 32, 27, 45, 38, 52, 41, 60, 55, 70, 63, 82, 74, 90];
+const TRENDING = [
+  'AI in Financial Services',
+  'SaaS Pricing Models 2025',
+  'Enterprise Sales Automation',
+  'LLM Accuracy Benchmarks',
+  'B2B Pipeline Optimization',
+];
 
-function LineChart({ data }: { data: number[] }) {
-  const w = 340, h = 100;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 16) - 8;
-    return `${x},${y}`;
-  });
-  const pathD = `M ${pts.join(' L ')}`;
-  const areaD = `M 0,${h} L ${pts.join(' L ')} L ${w},${h} Z`;
+const STATS = [
+  { label: 'Queries this week', value: '147' },
+  { label: 'Agents active', value: '8' },
+  { label: 'Avg. response time', value: '1.8s' },
+  { label: 'Documents indexed', value: '2,341' },
+];
 
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
-      <defs>
-        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#000000" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaD} fill="url(#chartGrad)" />
-      <path d={pathD} fill="none" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {(() => {
-        const last = pts[pts.length - 1].split(',');
-        return <circle cx={last[0]} cy={last[1]} r="4" fill="#000000" />;
-      })()}
-    </svg>
-  );
-}
+export default function Dashboard() {
+  const { user } = useUser();
+  const [input, setInput] = useState('');
+  const [hour, setHour] = useState(new Date().getHours());
 
-function CircularScore({ score }: { score: number }) {
-  const r = 52;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (score / 100) * circ;
-  return (
-    <svg width="140" height="140" viewBox="0 0 140 140">
-      <circle cx="70" cy="70" r={r} fill="none" stroke="#E8E8E8" strokeWidth="10" />
-      <circle cx="70" cy="70" r={r} fill="none" stroke="#000000" strokeWidth="10"
-        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-        transform="rotate(-90 70 70)" />
-      <text x="70" y="65" textAnchor="middle" fill="#0A0A0A" fontSize="28" fontWeight="700" fontFamily="Inter,sans-serif">{score}</text>
-      <text x="70" y="82" textAnchor="middle" fill="#999999" fontSize="11" fontFamily="Inter,sans-serif">/ 100</text>
-    </svg>
-  );
-}
+  useEffect(() => { setHour(new Date().getHours()); }, []);
 
-function timeAgo(dateStr: string) {
-  const d = new Date(dateStr);
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({ totalDocuments: 0, queriesThisWeek: 0, avgResponseTime: 0, activeUsers: 1 });
-  const [queries, setQueries] = useState<Query[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/analytics').then(r => r.json()).catch(() => ({})),
-      fetch('/api/queries?limit=5').then(r => r.json()).catch(() => []),
-    ]).then(([statsData, queriesData]) => {
-      setStats({ totalDocuments: 0, queriesThisWeek: 0, avgResponseTime: 0, activeUsers: 1, ...statsData });
-      setQueries(Array.isArray(queriesData) ? queriesData : []);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  const healthScore = Math.min(100, Math.round(
-    (stats.totalDocuments > 0 ? 40 : 10) +
-    (stats.queriesThisWeek > 0 ? 30 : 0) +
-    (stats.avgResponseTime < 3 ? 30 : 20)
-  ));
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.firstName || 'there';
 
   return (
-    <div style={{ maxWidth: 1140, paddingBottom: 40 }}>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0A0A0A', letterSpacing: '-0.6px' }}>Dashboard</h1>
-        <p style={{ fontSize: 13, color: '#777777', marginTop: 5 }}>Here's what's happening with your knowledge base today</p>
-      </div>
+    <div style={{ display: 'flex', gap: 32, maxWidth: 1200, margin: '0 auto' }}>
 
-      {/* Top row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, marginBottom: 16 }}>
+      {/* Main */}
+      <div style={{ flex: 1, minWidth: 0 }}>
 
-        {/* Total Documents */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E8E8E8', borderRadius: 16, padding: '28px 28px 24px' }}>
-          <div style={{ fontSize: 12, color: '#888888', fontWeight: 500, marginBottom: 14, letterSpacing: '0.3px' }}>
-            Total Documents Indexed
-          </div>
-          <div style={{ fontSize: 42, fontWeight: 700, color: '#0A0A0A', letterSpacing: '-1.5px', lineHeight: 1, marginBottom: 14 }}>
-            {loading ? '—' : stats.totalDocuments.toLocaleString()}
-          </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#000000', background: '#F0F0F0', border: '1px solid #DDDDDD', padding: '4px 10px', borderRadius: 6, marginBottom: 20 }}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 8V2M2 5l3-3 3 3" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            {stats.queriesThisWeek > 0 ? `+${stats.queriesThisWeek} this week` : 'No queries yet'}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href="/documents" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#F4F4F4', border: '1px solid #E0E0E0', borderRadius: 8, fontSize: 12, fontWeight: 500, color: '#0A0A0A' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-              Upload Docs
-            </Link>
-            <Link href="/ask" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#000000', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>
-              Ask AI
-            </Link>
-          </div>
-        </div>
-
-        {/* Query Activity */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E8E8E8', borderRadius: 16, padding: '24px 24px 20px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div>
-              <div style={{ fontSize: 12, color: '#888888', fontWeight: 500, marginBottom: 4 }}>Query Activity</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', letterSpacing: '-0.5px' }}>
-                {loading ? '—' : stats.queriesThisWeek} <span style={{ fontSize: 13, color: '#888888', fontWeight: 400 }}>this week</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['7D', '30D'].map((t, i) => (
-                <span key={t} style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6, background: i === 0 ? '#000000' : 'transparent', color: i === 0 ? '#FFFFFF' : '#AAAAAA', border: '1px solid #E0E0E0', cursor: 'pointer' }}>{t}</span>
-              ))}
-            </div>
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <LineChart data={SPARK_DATA} />
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16 }}>
-
-        {/* AI Knowledge Health */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E8E8E8', borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: '100%', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="5" r="3"/><path d="M1 13c0-3 2.5-5 6-5s6 2 6 5"/></svg>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A' }}>AI Knowledge Health</span>
-            </div>
-          </div>
-          <CircularScore score={loading ? 0 : healthScore} />
-          <p style={{ fontSize: 12, color: '#888888', textAlign: 'center', marginTop: 12, lineHeight: 1.5, maxWidth: 200 }}>
-            {healthScore >= 80 ? 'Excellent coverage. Agents ready.' : healthScore >= 50 ? 'Good. Upload more docs to improve.' : 'Upload documents to activate AI.'}
+        {/* Greeting */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 600, color: '#0A0A14', margin: 0, letterSpacing: '-0.5px' }}>
+            {greeting}, {firstName}.
+          </h1>
+          <p style={{ fontSize: 14, color: '#9CA3AF', marginTop: 6 }}>
+            Here's what's happening across your workspace.
           </p>
-          <div style={{ width: '100%', marginTop: 16, display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, background: '#F8F8F8', borderRadius: 8, padding: '10px 14px', border: '1px solid #EEEEEE' }}>
-              <div style={{ fontSize: 10, color: '#AAAAAA', marginBottom: 3, fontWeight: 500 }}>AVG RESPONSE</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#0A0A0A' }}>{loading ? '—' : `${(stats.avgResponseTime || 0).toFixed(1)}s`}</div>
-            </div>
-            <div style={{ flex: 1, background: '#F8F8F8', borderRadius: 8, padding: '10px 14px', border: '1px solid #EEEEEE' }}>
-              <div style={{ fontSize: 10, color: '#AAAAAA', marginBottom: 3, fontWeight: 500 }}>ACTIVE USERS</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#0A0A0A' }}>{loading ? '—' : stats.activeUsers}</div>
-            </div>
-          </div>
         </div>
 
-        {/* Recent Queries */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E8E8E8', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F0F0F0' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A' }}>Recent Queries</span>
-            <Link href="/ask" style={{ fontSize: 12, color: '#000000', fontWeight: 500 }}>Ask AI →</Link>
+        {/* Quick action input */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 16px',
+          border: '1px solid #E5E7EB', borderRadius: 12,
+          background: '#fff', marginBottom: 28,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ask anything or start a new thread…"
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#374151', background: 'transparent' }}
+          />
+          {input && (
+            <Link href={`/ask?q=${encodeURIComponent(input)}`} style={{ background: '#0A0A14', color: '#fff', padding: '5px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, textDecoration: 'none' }}>
+              Send →
+            </Link>
+          )}
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 32, flexWrap: 'wrap' }}>
+          {QUICK_ACTIONS.map(a => (
+            <Link key={a.label} href={a.href} style={{
+              display: 'flex', alignItems: 'center', gap: 9,
+              padding: '9px 14px', borderRadius: 10,
+              border: '1px solid #F0F0F0', background: '#fff',
+              textDecoration: 'none', color: '#374151', fontSize: 13, fontWeight: 500,
+              transition: 'border-color 0.12s, box-shadow 0.12s',
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#D1D5DB'; el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#F0F0F0'; el.style.boxShadow = 'none'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d={a.icon}/>
+              </svg>
+              {a.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Threads */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Recent threads</span>
+            <Link href="/ask" style={{ fontSize: 12.5, color: '#9CA3AF', textDecoration: 'none' }}>View all →</Link>
           </div>
-          <div>
-            {queries.length === 0 ? (
-              <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: '#AAAAAA', marginBottom: 12 }}>No queries yet</div>
-                <Link href="/ask" style={{ fontSize: 13, color: '#000000', fontWeight: 500 }}>Ask your first question →</Link>
-              </div>
-            ) : (
-              queries.map((q, i) => (
-                <div key={q.id} style={{ padding: '14px 24px', borderTop: i === 0 ? 'none' : '1px solid #F4F4F4', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 8, background: '#F0F0F0', border: '1px solid #E8E8E8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#555" strokeWidth="1.5" strokeLinecap="round"><circle cx="6" cy="6" r="4"/><line x1="9.5" y1="9.5" x2="13" y2="13"/></svg>
-                  </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {RECENT_THREADS.map(thread => (
+              <div key={thread.id} style={{
+                padding: '14px 16px', border: '1px solid #F0F0F0', borderRadius: 12,
+                background: '#fff', cursor: 'pointer', transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#D1D5DB'; el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#F0F0F0'; el.style.boxShadow = 'none'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#0A0A0A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.question}</div>
-                    <div style={{ fontSize: 11, color: '#AAAAAA', marginTop: 2 }}>{timeAgo(q.created_at)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: thread.tagColor, background: thread.tagBg, padding: '2px 8px', borderRadius: 20 }}>
+                        {thread.tag}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#D1D5DB' }}>·</span>
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>{thread.agent}</span>
+                      <span style={{ fontSize: 11, color: '#D1D5DB' }}>·</span>
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>{thread.time}</span>
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 500, color: '#111827', marginBottom: 4 }}>{thread.title}</div>
+                    <div style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{thread.preview}</div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#555555', fontWeight: 600, flexShrink: 0, background: '#F0F0F0', padding: '3px 8px', borderRadius: 4 }}>AI</div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                    <polyline points="9,18 15,12 9,6"/>
+                  </svg>
                 </div>
-              ))
-            )}
-          </div>
-          <div style={{ padding: '14px 24px', borderTop: '1px solid #F0F0F0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {['Summarizer', 'Gap Analysis', 'Trend Report', 'Weekly Digest'].map(agent => (
-              <Link key={agent} href="/agents" style={{ fontSize: 11, fontWeight: 500, color: '#555555', background: '#F4F4F4', border: '1px solid #E8E8E8', padding: '5px 10px', borderRadius: 6 }}>{agent}</Link>
+              </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Right sidebar */}
+      <div style={{ width: 268, flexShrink: 0 }}>
+
+        {/* Stats */}
+        <div style={{ border: '1px solid #F0F0F0', borderRadius: 14, padding: '16px', background: '#fff', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 14 }}>This week</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {STATS.map(s => (
+              <div key={s.label}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#0A0A14', letterSpacing: '-0.5px' }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2, lineHeight: 1.4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Trending */}
+        <div style={{ border: '1px solid #F0F0F0', borderRadius: 14, padding: '16px', background: '#fff', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12 }}>What's trending</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {TRENDING.map((t, i) => (
+              <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < TRENDING.length - 1 ? '1px solid #F9FAFB' : 'none', cursor: 'pointer' }}>
+                <span style={{ fontSize: 11, color: '#D1D5DB', fontWeight: 600, minWidth: 16, textAlign: 'right' }}>{i + 1}</span>
+                <span style={{ fontSize: 12.5, color: '#374151' }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA card */}
+        <div style={{ borderRadius: 14, padding: '18px 16px', background: '#0A0A14' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Upgrade to Pro</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, marginBottom: 14 }}>
+            Unlock unlimited agents, advanced analytics, and priority support.
+          </div>
+          <button style={{ width: '100%', padding: '8px 0', background: '#fff', color: '#0A0A14', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
+            Learn more
+          </button>
         </div>
       </div>
     </div>

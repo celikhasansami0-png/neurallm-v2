@@ -5,11 +5,11 @@ import { useState } from 'react';
 
 const breadcrumbs: Record<string, string> = {
   '/': 'Dashboard',
-  '/ask': 'Ask Anything',
-  '/documents': 'Documents',
+  '/ask': 'Assistant',
+  '/documents': 'Knowledge Base',
   '/agents': 'Agents',
   '/workflows': 'Workflows',
-  '/copilot': 'Copilot',
+  '/copilot': 'ROI',
 };
 
 export default function Topbar() {
