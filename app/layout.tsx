@@ -27,8 +27,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </main>
             </ErrorBoundary>
-              {children}
-            </main>
           </div>
           <CopilotPanel />
         </body>
