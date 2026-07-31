@@ -1,6 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Workflow {
+  id: string;
+  name: string;
+  description?: string;
+  trigger: string;
+  action: string;
+  status: 'active' | 'paused' | 'running';
+  last_run?: string;
+  run_count?: number;
+  created_at: string;
+}
 
 type TabType = 'workflow' | 'settings' | 'runs';
 type NodeStatus = 'configured' | 'unconfigured' | 'running' | 'completed';
@@ -139,6 +151,51 @@ export default function WorkflowsPage() {
   const [zoom, setZoom] = useState(100);
   const [view, setView] = useState<'outline' | 'detail'>('outline');
 
+  // Real workflow DB state
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [runningId, setRunningId] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<string | null>(null);
+  const [newWf, setNewWf] = useState({ name: '', description: '', trigger: 'manual', action: '' });
+
+  useEffect(() => {
+    fetch('/api/workflows')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => Array.isArray(data) ? setWorkflows(data) : setWorkflows([]))
+      .catch(() => {});
+  }, []);
+
+  const createWorkflow = async () => {
+    if (!newWf.name.trim() || !newWf.action.trim()) return;
+    setCreating(true);
+    try {
+      const res = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newWf),
+      });
+      const wf = await res.json();
+      if (wf.id) {
+        setWorkflows(prev => [wf, ...prev]);
+        setNewWf({ name: '', description: '', trigger: 'manual', action: '' });
+      }
+    } finally { setCreating(false); }
+  };
+
+  const runWorkflow = async (wf: Workflow) => {
+    setRunningId(wf.id);
+    setLastResult(null);
+    try {
+      const res = await fetch(`/api/workflows/${wf.id}/run`, { method: 'POST' });
+      const data = await res.json();
+      setLastResult(data.result || 'Workflow completed.');
+      setWorkflows(prev => prev.map(w => w.id === wf.id
+        ? { ...w, status: 'active', last_run: new Date().toISOString(), run_count: (w.run_count || 0) + 1 }
+        : w));
+    } catch { setLastResult('Run failed.'); }
+    finally { setRunningId(null); }
+  };
+
   const addNode = (afterId: string) => {
     const newNode: WFNode = {
       id: `n${Date.now()}`,
@@ -264,27 +321,107 @@ export default function WorkflowsPage() {
       )}
 
       {tab === 'settings' && (
-        <div style={{ flex: 1, padding: 32, maxWidth: 520 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 20 }}>Workflow Settings</div>
-          {[{ label: 'Name', val: 'New workflow' }, { label: 'Description', val: '' }].map(f => (
-            <div key={f.label} style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12.5, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 6 }}>{f.label}</label>
-              <input defaultValue={f.val} placeholder={f.val ? '' : 'Optional...'} style={{ width: '100%', padding: '9px 12px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13.5, outline: 'none', color: '#111827', background: '#fff' }}/>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 32, maxWidth: 640 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 20 }}>My Workflows</div>
+
+          {/* Create form */}
+          <div style={{ border: '1px solid #E5E7EB', borderRadius: 12, padding: 20, marginBottom: 24, background: '#FAFAFA' }}>
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 14, color: '#111827' }}>+ New Workflow</div>
+            {[
+              { key: 'name', label: 'Name', placeholder: 'e.g. Weekly Research Report' },
+              { key: 'description', label: 'Description', placeholder: 'What does this workflow do?' },
+              { key: 'action', label: 'Action / Prompt', placeholder: 'e.g. Summarise top 5 market trends from knowledge base' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 5 }}>{f.label}</label>
+                <input
+                  value={newWf[f.key as keyof typeof newWf]}
+                  onChange={e => setNewWf(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, outline: 'none', color: '#111827', background: '#fff', boxSizing: 'border-box' }}
+                />
+              </div>
+            ))}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 5 }}>Trigger</label>
+              <select value={newWf.trigger} onChange={e => setNewWf(prev => ({ ...prev, trigger: e.target.value }))}
+                style={{ padding: '9px 12px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, color: '#111827', background: '#fff', outline: 'none', width: '100%' }}>
+                <option value="manual">Manual</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="document_upload">On document upload</option>
+              </select>
             </div>
-          ))}
+            <button onClick={createWorkflow} disabled={creating || !newWf.name.trim() || !newWf.action.trim()} style={{
+              padding: '9px 20px', borderRadius: 8, border: 'none',
+              background: creating || !newWf.name.trim() || !newWf.action.trim() ? '#E5E7EB' : '#111827',
+              color: creating || !newWf.name.trim() || !newWf.action.trim() ? '#9CA3AF' : '#fff',
+              fontSize: 13, fontWeight: 500, cursor: creating ? 'default' : 'pointer',
+            }}>{creating ? 'Creating…' : 'Create Workflow'}</button>
+          </div>
+
+          {/* Workflow list */}
+          {workflows.length === 0 ? (
+            <div style={{ padding: '32px 0', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>No workflows yet. Create one above.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {workflows.map(wf => (
+                <div key={wf.id} style={{ border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 18px', background: '#fff', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13.5, color: '#111827', marginBottom: 2 }}>{wf.name}</div>
+                    {wf.description && <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>{wf.description}</div>}
+                    <div style={{ fontSize: 11.5, color: '#6B7280' }}>
+                      Trigger: <b>{wf.trigger}</b>
+                      {wf.run_count ? ` · ${wf.run_count} runs` : ''}
+                      {wf.last_run ? ` · Last: ${new Date(wf.last_run).toLocaleDateString()}` : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+                      background: wf.status === 'active' ? '#ECFDF5' : wf.status === 'running' ? '#FEF3C7' : '#F3F4F6',
+                      color: wf.status === 'active' ? '#059669' : wf.status === 'running' ? '#D97706' : '#6B7280',
+                    }}>{wf.status}</span>
+                    <button onClick={() => runWorkflow(wf)} disabled={runningId === wf.id} style={{
+                      padding: '7px 14px', borderRadius: 8, border: 'none',
+                      background: runningId === wf.id ? '#E5E7EB' : '#6D28D9',
+                      color: runningId === wf.id ? '#9CA3AF' : '#fff',
+                      fontSize: 12, fontWeight: 500, cursor: runningId === wf.id ? 'default' : 'pointer',
+                    }}>{runningId === wf.id ? 'Running…' : '▶ Run'}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Last result */}
+          {lastResult && (
+            <div style={{ marginTop: 20, border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, background: '#F9FAFB' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Last Run Result</div>
+              <div style={{ fontSize: 13, color: '#111827', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{lastResult}</div>
+            </div>
+          )}
         </div>
       )}
 
       {tab === 'runs' && (
-        <div style={{ flex: 1, padding: 32 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>Enrolment</div>
-          <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 20 }}>No runs yet. Activate the workflow to start processing.</div>
-          <div style={{ border: '1px solid #F0F0F0', borderRadius: 12, padding: '40px 24px', textAlign: 'center', color: '#D1D5DB', fontSize: 13 }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" strokeWidth="1.5" strokeLinecap="round" style={{ display: 'block', margin: '0 auto 12px' }}>
-              <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
-            </svg>
-            No runs yet
-          </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 32 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>Run History</div>
+          {workflows.filter(w => w.last_run).length === 0 ? (
+            <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 12 }}>No runs yet. Go to Settings to create and run a workflow.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {workflows.filter(w => w.last_run).sort((a, b) => new Date(b.last_run!).getTime() - new Date(a.last_run!).getTime()).map(wf => (
+                <div key={wf.id} style={{ border: '1px solid #F0F0F0', borderRadius: 10, padding: '12px 16px', background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 13.5 }}>{wf.name}</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>{wf.run_count} run{wf.run_count !== 1 ? 's' : ''}</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B7280' }}>{wf.last_run ? new Date(wf.last_run).toLocaleString() : '—'}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const COLORS = ['#6D28D9', '#1D4ED8', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777'];
 
@@ -123,12 +123,20 @@ function LineChart({ points }: { points: number[] }) {
 
 export default function ROIPage() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [stats, setStats] = useState({ totalDocuments: 0, queriesThisWeek: 0, avgResponseTime: 1.2, activeUsers: 1 });
+
+  useEffect(() => {
+    fetch('/api/analytics')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setStats(data); })
+      .catch(() => {});
+  }, []);
 
   const STAT_CARDS = [
-    { label: 'Total Queries', value: '2,891', delta: '+18%', color: '#6D28D9', bg: '#F5F3FF' },
-    { label: 'Docs Processed', value: '1,204', delta: '+31%', color: '#1D4ED8', bg: '#EFF6FF' },
-    { label: 'Avg Response', value: '1.7s', delta: '-12%', color: '#059669', bg: '#ECFDF5' },
-    { label: 'Hours Saved', value: '340h', delta: '+24%', color: '#D97706', bg: '#FFFBEB' },
+    { label: 'Total Queries', value: stats.queriesThisWeek > 0 ? stats.queriesThisWeek.toLocaleString() : '0', delta: 'This week', color: '#6D28D9', bg: '#F5F3FF' },
+    { label: 'Docs Processed', value: stats.totalDocuments > 0 ? stats.totalDocuments.toLocaleString() : '0', delta: 'Indexed', color: '#1D4ED8', bg: '#EFF6FF' },
+    { label: 'Avg Response', value: stats.avgResponseTime ? `${stats.avgResponseTime.toFixed(1)}s` : '—', delta: 'Per query', color: '#059669', bg: '#ECFDF5' },
+    { label: 'Active Users', value: String(stats.activeUsers || 1), delta: 'Right now', color: '#D97706', bg: '#FFFBEB' },
   ];
 
   return (
