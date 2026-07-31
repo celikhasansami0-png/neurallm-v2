@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
 import { getEmbedding } from '@/lib/embeddings';
-import { chatCompletion } from '@/lib/nvidia';
+import { chatCompletion } from '@/lib/ai';
 import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';

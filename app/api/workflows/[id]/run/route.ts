@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
-import { chatCompletion } from '@/lib/nvidia';
+import { chatCompletion } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
